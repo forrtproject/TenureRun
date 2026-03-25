@@ -1,623 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tenure Run</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@700&display=swap');
-
-        body {
-            margin: 0; padding: 0;
-            background-color: #2c3e50;
-            display: flex; justify-content: center; align-items: center;
-            height: 100vh; font-family: 'Roboto Mono', monospace;
-            overflow: hidden; touch-action: none;
-        }
-
-        #game-container {
-            position: relative; width: 450px; height: 700px;
-            background: #7ac5f7; /* Sky Blue */
-            border: 6px solid #1a252f; border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            overflow: hidden;
-        }
-
-        canvas { display: block; }
-
-        /* UI Styling */
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%;
-            padding: 20px; box-sizing: border-box;
-            display: flex; justify-content: space-between;
-            color: #333; z-index: 10; pointer-events: none;
-            font-size: 20px; font-weight: bold;
-            text-shadow: 1px 1px 0px #fff;
-        }
-
-        .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.85);
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            color: #111; z-index: 20; text-align: center;
-            padding: 25px; box-sizing: border-box;
-            backdrop-filter: blur(4px);
-        }
-
-        .hidden { display: none !important; }
-
-        h1 { 
-            font-family: 'Press Start 2P', monospace; 
-            color: #1a252f; font-size: 26px; 
-            text-shadow: 3px 3px 0px #7ac5f7; 
-            margin-bottom: 5px; line-height: 1.4;
-        }
-        h2 { color: #d35400; margin-top: 0; font-size: 18px; }
-        
-        .text-content {
-            background: #fff;
-            border: 2px solid #ccc;
-            padding: 15px; border-radius: 10px;
-            font-size: 14px; line-height: 1.6;
-            text-align: left; margin-bottom: 20px;
-            max-height: 350px; overflow-y: auto;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
-        }
-
-        .text-content ul { padding-left: 20px; margin: 10px 0; }
-        .text-content li { margin-bottom: 8px; }
-
-        button {
-            font-family: 'Press Start 2P', monospace;
-            background: #3498db; color: #fff;
-            border: 3px solid #2980b9; border-radius: 5px;
-            padding: 15px 20px; font-size: 14px;
-            cursor: pointer; transition: all 0.1s; margin: 8px;
-            box-shadow: 4px 4px 0px #1a252f;
-        }
-        button:hover { 
-            transform: translate(2px, 2px); 
-            box-shadow: 2px 2px 0px #1a252f;
-        }
-        .btn-orange { 
-            background: #e67e22; border-color: #d35400;
-        }
-
-        #warning-flash {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at bottom, rgba(255,0,0,0.4) 0%, transparent 60%);
-            z-index: 5; opacity: 0; transition: opacity 0.1s; pointer-events: none;
-        }
-        .warning-active { opacity: 1 !important; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title | default("Replicate This") }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ '/css/style.css' | url }}">
+  <script>
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark-mode'); }
+  </script>
 </head>
 <body>
-
-    <div id="game-container">
-        <canvas id="gameCanvas" width="450" height="700"></canvas>
-        <div id="warning-flash"></div>
-
-        <div id="ui-layer">
-            <div>CITATIONS: <span id="score">0</span></div>
-            <div id="status-indicator" style="text-align: right;"></div>
-        </div>
-
-        <!-- Start Screen -->
-        <div id="start-screen" class="screen">
-            <h1>TENURE RUN</h1>
-            <h2>Publish or Perish!</h2>
-            
-            <div class="text-content" style="text-align: center;">
-                <strong>CONTROLS</strong><br><br>
-                <strong>[ ◀ ] [ ▶ ]</strong> or <strong>SWIPE</strong><br>Switch Lanes<br><br>
-                <strong>[ ▲ ]</strong> or <strong>SPACE</strong><br>Jump over APCs
-            </div>
-
-            <button onclick="startGame()">SUBMIT PAPER</button>
-            <button class="btn-orange" onclick="showAbout()">ABOUT GAME</button>
-        </div>
-
-        <!-- About Screen -->
-        <div id="about-screen" class="screen hidden">
-            <h1 style="font-size: 20px;">THE TREADMILL</h1>
-            <div class="text-content">
-                <p>Navigate the academic publishing landscape:</p>
-                <ul>
-                    <li>🧱 <strong>Tall Paywalls:</strong> Blocks access. Too high to jump!</li>
-                    <li><strong style="color:red;">$</strong> <strong>APCs (Fees):</strong> Low barrier. Jump over it to save grant money!</li>
-                    <li>🟦 <strong>Open Science:</strong> Blue Hexagon. Collect for citations!</li>
-                    <li>💎 <strong>Diamond OA:</strong> Grants a shield from one crash.</li>
-                    <li>🔓 <strong>Preprint Server:</strong> Orange Lock. Jetpack over peer-review delays!</li>
-                    <li>😡 <strong>Reviewer 2:</strong> Stumble, and they catch you!</li>
-                </ul>
-            </div>
-            <button class="btn-orange" onclick="hideAbout()">BACK TO MENU</button>
-        </div>
-
-        <!-- Game Over Screen -->
-        <div id="game-over-screen" class="screen hidden">
-            <h1 style="color: #c0392b;">REJECTED!</h1>
-            <p>Reviewer 2 caught you, or you hit a Paywall.</p>
-            <h2 style="margin: 20px 0; color:#333; font-size:24px;">CITATIONS: <br><span id="final-score" style="color:#2980b9; font-size:40px;">0</span></h2>
-            <button onclick="startGame()">NEW SUBMISSION</button>
-        </div>
+  <header class="site-header">
+    <div class="container header-top">
+      <h1 class="site-title">
+        <a href="{{ '/' | url }}">
+          <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 2h7l4 4v4a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+            <path d="M14 2v4h4" />
+            <line x1="3" y1="13" x2="21" y2="13" stroke-width="1" stroke-dasharray="3 3"/>
+            <path d="M7 24h7l4-4v-4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1z" opacity="0.4"/>
+            <path d="M14 24v-4h4" opacity="0.4" />
+          </svg>
+          Replicate This
+        </a>
+      </h1>
+      <div class="sub-headline">A Community Registry for Scientific Verification</div>
     </div>
+    
+    <div class="nav-wrapper">
+      <div class="container" style="padding: 0;">
+        <nav class="main-nav">
+          <a href="{{ '/' | url }}">Home</a>
+          <a href="{{ '/browse/' | url }}">Nominations</a>
+          <a href="{{ '/leaderboards/' | url }}">Leaderboards</a>
+          <a href="https://github.com/forrtproject/replicatethis/issues/new?template=nomination.yml" target="_blank" class="nav-nominate">Nominate</a>
+          <a href="{{ '/coc/' | url }}">COC</a>
+          <a href="{{ '/about/' | url }}">About</a>
+          <button id="darkModeToggle" class="dark-toggle" aria-label="Toggle Dark Mode">
+            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+  
+  <main class="container">
+    {{ content | safe }}
+  </main>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score');
-        const statusIndicator = document.getElementById('status-indicator');
-        const warningFlash = document.getElementById('warning-flash');
+  <footer class="site-footer">
+    <div class="container">
+      <p>This is a prototype project developed by Lukas Röseler with Gemini 3.1 Pro Preview.</p>
+      <p><a href="https://github.com/forrtproject/replicatethis" target="_blank">View repository on GitHub</a></p>
+    </div>
+  </footer>
 
-        // --- AUDIO ENGINE (SFX & Funny Music) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let bgmTimer;
-        let nextNoteTime = 0;
-        let noteIndex = 0;
-
-        function scheduleBGM() {
-            if (!isPlaying) return;
-            let currentTime = audioCtx.currentTime;
-            
-            // Look ahead and schedule notes
-            while (nextNoteTime < currentTime + 0.1) {
-                playBGMNote(nextNoteTime);
-                // Tempo increases as gameSpeed increases (gameSpeed starts at 6, up to ~12)
-                let beatDuration = 1.0 / (gameSpeed * 0.4); 
-                nextNoteTime += beatDuration;
-            }
-            bgmTimer = setTimeout(scheduleBGM, 50);
-        }
-
-        function playBGMNote(time) {
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            
-            osc.type = 'triangle';
-            // Alternating tuba/bass notes for a comical running effect
-            let freqs = [130.81, 196.00]; // C3, G3
-            osc.frequency.setValueAtTime(freqs[noteIndex % 2], time);
-            noteIndex++;
-
-            gain.gain.setValueAtTime(0.15, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-            
-            osc.start(time); osc.stop(time + 0.15);
-        }
-
-        function playSound(type) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
-            
-            if (type === 'coin') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now); osc.frequency.exponentialRampToValueAtTime(1500, now + 0.1);
-                gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'jump') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
-                gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-                osc.start(now); osc.stop(now + 0.2);
-            } else if (type === 'powerup') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1); osc.frequency.setValueAtTime(800, now + 0.2);
-                gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-                osc.start(now); osc.stop(now + 0.4);
-            } else if (type === 'crash') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-                gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            }
-        }
-
-        // --- GRAPHICS: PIXEL ART & DRAWING ---
-        const colors = {'W':'#ffffff', 'B':'#000000', 'C':'#ffc0cb', 'b':'#2980b9'};
-        const playerSprite = [
-            "  BBBB  ",
-            " BCCCCB ",
-            " BCBWCB ", // Glasses
-            " WWWWWW ", // Lab coat
-            " BWWWWb ", // Lab coat + blue tie
-            "  WWWW  ",
-            "  B  B  ",
-            "  B  B  "
-        ];
-        
-        function drawPixelSprite(ctx, sprite, x, y, scale) {
-            const size = scale;
-            const w = sprite[0].length * size;
-            const h = sprite.length * size;
-            const startX = x - w/2;
-            const startY = y - h/2;
-            for(let r=0; r<sprite.length; r++) {
-                for(let c=0; c<sprite[r].length; c++) {
-                    const char = sprite[r][c];
-                    if(char !== ' ') {
-                        ctx.fillStyle = colors[char];
-                        ctx.fillRect(startX + c*size, startY + r*size, size, size);
-                    }
-                }
-            }
-        }
-
-        function drawHexBadge(ctx, x, y, size) {
-            ctx.fillStyle = "#2980b9"; // Blue
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                let angle = (Math.PI / 3) * i + (Math.PI / 6);
-                ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
-            }
-            ctx.closePath(); ctx.fill();
-            // Inner bars
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(x - 6, y + 2, 3, -8);
-            ctx.fillRect(x - 1, y + 2, 3, -12);
-            ctx.fillRect(x + 4, y + 2, 3, -6);
-        }
-
-        function drawLockBadge(ctx, x, y, size) {
-            ctx.fillStyle = "#e67e22"; // Orange
-            ctx.fillRect(x - size/2, y, size, size*0.8); // Body
-            ctx.strokeStyle = "#e67e22"; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(x, y, size*0.4, Math.PI, Math.PI*1.8); ctx.stroke(); // Shackle
-            // Keyhole
-            ctx.fillStyle = "#fff";
-            ctx.beginPath(); ctx.arc(x, y + size*0.3, 3, 0, Math.PI*2); ctx.fill();
-            ctx.fillRect(x-1.5, y+size*0.3, 3, 6);
-        }
-
-        // --- GAME ENGINE ---
-        const PAPER_WIDTH = 300;
-        const PAPER_X = (450 - PAPER_WIDTH) / 2; // Center paper
-        const LANES = [125, 225, 325]; // Centers of the lanes on the paper
-        const GROUND_Y = 550;
-        
-        let isPlaying = false, score = 0, gameSpeed = 6, frameCount = 0, animationId;
-        
-        let player = { lane: 1, x: 225, y: GROUND_Y, isJumping: false, jumpProgress: 0, hasShield: false, jetpackTimer: 0 };
-        let reviewerDist = 100; // 100 = far, 0 = caught
-        let entities = [];
-        let particles = [];
-        
-        // Background Elements
-        let clouds = Array.from({length: 5}, () => ({
-            x: Math.random() * 450, y: Math.random() * 700, 
-            speed: Math.random() * 0.3 + 0.1, size: Math.random() * 30 + 30
-        }));
-
-        let textLines = [];
-        const academicWords = ["Abstract", "Methodology", "Results", "p < 0.05", "N = 342", "Null Hypothesis", "Discussion", "Conclusion", "Data Set", "Double Blind", "Variables", "Significance"];
-
-        // Input
-        document.addEventListener('keydown', (e) => {
-            if (!isPlaying) return;
-            if (e.key === 'ArrowLeft' || e.key === 'a') if (player.lane > 0) player.lane--;
-            if (e.key === 'ArrowRight' || e.key === 'd') if (player.lane < 2) player.lane++;
-            if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && !player.isJumping && player.jetpackTimer <= 0) {
-                player.isJumping = true; player.jumpProgress = 0; playSound('jump');
-            }
-        });
-
-        let touchX = 0, touchY = 0;
-        canvas.addEventListener('touchstart', e => { touchX = e.touches[0].screenX; touchY = e.touches[0].screenY; });
-        canvas.addEventListener('touchend', e => {
-            if (!isPlaying) return;
-            let dx = e.changedTouches[0].screenX - touchX;
-            let dy = e.changedTouches[0].screenY - touchY;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 30 && player.lane < 2) player.lane++;
-                else if (dx < -30 && player.lane > 0) player.lane--;
-            } else {
-                if (dy < -30 && !player.isJumping && player.jetpackTimer <= 0) {
-                    player.isJumping = true; player.jumpProgress = 0; playSound('jump');
-                }
-            }
-        });
-
-        // Menus
-        function showAbout() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('about-screen').classList.remove('hidden'); }
-        function hideAbout() { document.getElementById('about-screen').classList.add('hidden'); document.getElementById('start-screen').classList.remove('hidden'); }
-
-        function startGame() {
-            isPlaying = true; score = 0; gameSpeed = 6; frameCount = 0; 
-            entities = []; particles = []; textLines = [];
-            
-            // Seed initial text lines
-            for(let y=0; y<700; y+=40) spawnTextLine(y);
-
-            player = { lane: 1, x: 225, y: GROUND_Y, isJumping: false, jumpProgress: 0, hasShield: false, jetpackTimer: 0 };
-            reviewerDist = 100;
-            scoreEl.innerText = score; statusIndicator.innerText = "";
-            warningFlash.classList.remove('warning-active');
-            
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-            
-            // Start Audio
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            clearTimeout(bgmTimer);
-            nextNoteTime = audioCtx.currentTime + 0.1;
-            scheduleBGM();
-
-            animationId = requestAnimationFrame(gameLoop);
-        }
-
-        function spawnTextLine(yStart) {
-            let str = "";
-            for(let i=0; i<3; i++) str += academicWords[Math.floor(Math.random() * academicWords.length)] + "   ";
-            textLines.push({ y: yStart, text: str });
-        }
-
-        function spawnEntity() {
-            const lane = Math.floor(Math.random() * 3);
-            const rand = Math.random();
-            let type = '';
-            if (rand < 0.5) type = 'os_badge';
-            else if (rand < 0.75) type = 'paywall';
-            else if (rand < 0.95) type = 'apc';
-            else if (rand < 0.98) type = 'diamond';
-            else type = 'oa_lock';
-
-            if (!entities.some(e => e.lane === lane && e.y < 150)) {
-                entities.push({ type: type, lane: lane, x: LANES[lane], y: -50, marked: false });
-            }
-        }
-
-        function spawnParticles(x, y, color, count, isText = null) {
-            if (isText) {
-                particles.push({ text: isText, x: x, y: y, vx: 0, vy: -2, life: 1, maxLife: 1, type: 'text', color: color });
-                return;
-            }
-            for(let i=0; i<count; i++) {
-                particles.push({
-                    x: x, y: y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
-                    life: Math.random() * 0.5 + 0.5, maxLife: 1, type: 'spark', color: color, size: Math.random() * 4 + 2
-                });
-            }
-        }
-
-        function gameLoop() {
-            if (!isPlaying) return;
-            frameCount++;
-            if (frameCount % 600 === 0) gameSpeed += 0.4;
-            
-            // Maintain scrolling text
-            if (frameCount % Math.floor(40/gameSpeed) === 0) spawnTextLine(-20);
-
-            if (frameCount % Math.max(20, Math.floor(70 - gameSpeed*1.5)) === 0) spawnEntity();
-
-            update(); draw();
-            animationId = requestAnimationFrame(gameLoop);
-        }
-
-        function update() {
-            // Smooth X Movement (Lerp)
-            player.x += (LANES[player.lane] - player.x) * 0.2;
-
-            // Jetpack & Jump Logic
-            let jumpOffset = 0;
-            if (player.jetpackTimer > 0) {
-                player.jetpackTimer--; 
-                jumpOffset = 180; // Fly very high
-                player.isJumping = false; // Override jump state
-                player.jumpProgress = 0;
-                
-                statusIndicator.innerHTML = `🚀 <span style="color:#d35400;">PREPRINT (${Math.ceil(player.jetpackTimer/60)}s)</span>`;
-                spawnParticles(player.x, player.renderY + 20, (frameCount%2===0)?'#e67e22':'#f1c40f', 2);
-            } else if (player.isJumping) {
-                player.jumpProgress += 0.08;
-                jumpOffset = Math.sin(player.jumpProgress) * 120;
-                if (player.jumpProgress >= Math.PI) { 
-                    player.isJumping = false; 
-                    jumpOffset = 0; 
-                }
-                if (player.hasShield) statusIndicator.innerHTML = `💎 <span style="color:#2980b9;">DIAMOND OA</span>`;
-                else statusIndicator.innerHTML = "";
-            } else {
-                if (player.hasShield) statusIndicator.innerHTML = `💎 <span style="color:#2980b9;">DIAMOND OA</span>`;
-                else statusIndicator.innerHTML = "";
-            }
-
-            player.renderY = GROUND_Y - jumpOffset;
-            let activeSpeed = (player.jetpackTimer > 0) ? gameSpeed * 2.5 : gameSpeed;
-
-            // Clouds update
-            clouds.forEach(c => {
-                c.y += c.speed;
-                if (c.y > 800) { c.y = -100; c.x = Math.random() * 450; }
-            });
-
-            // Text update
-            textLines.forEach(t => t.y += activeSpeed);
-            textLines = textLines.filter(t => t.y < 800);
-
-            // Reviewer Recovery
-            if (reviewerDist < 100) {
-                reviewerDist += 0.15;
-                if (reviewerDist > 60) warningFlash.classList.remove('warning-active');
-            }
-
-            // Move Entities
-            entities.forEach(e => {
-                e.y += activeSpeed;
-
-                // Collision Detection
-                // Notice we check against GROUND_Y to see if it reaches the player's physical feet
-                if (e.lane === player.lane && Math.abs(e.y - GROUND_Y) < 40 && !e.marked) {
-                    let isHighUp = (GROUND_Y - player.renderY) > 50;
-
-                    if (e.type === 'os_badge') {
-                        score += 10; scoreEl.innerText = score; playSound('coin'); e.marked = true;
-                        spawnParticles(e.x, e.y, '#2980b9', 15);
-                        spawnParticles(e.x, e.y - 20, '#2980b9', 1, "+10");
-                    } 
-                    else if (e.type === 'diamond') {
-                        player.hasShield = true; playSound('powerup'); e.marked = true;
-                        spawnParticles(e.x, e.y, '#3498db', 20);
-                    }
-                    else if (e.type === 'oa_lock') {
-                        player.jetpackTimer = 300; playSound('powerup'); e.marked = true;
-                        spawnParticles(e.x, e.y, '#e67e22', 30);
-                    }
-                    else if (e.type === 'paywall' || e.type === 'apc') {
-                        // Jetpack smashes obstacles
-                        if (player.jetpackTimer > 0) {
-                            score += 5; scoreEl.innerText = score; e.marked = true; 
-                            spawnParticles(e.x, e.y, '#c0392b', 20); return; 
-                        }
-                        
-                        // Jumping saves you from APC, but NOT Paywall
-                        if (e.type === 'apc' && isHighUp) return; 
-
-                        // CRASH
-                        playSound('crash'); e.marked = true;
-                        spawnParticles(e.x, e.y, '#c0392b', 30);
-
-                        if (player.hasShield) { player.hasShield = false; stumble(); } 
-                        else {
-                            if (e.type === 'paywall' || reviewerDist < 50) gameOver();
-                            else stumble();
-                        }
-                    }
-                }
-                if (e.y > 800) e.marked = true;
-            });
-
-            entities = entities.filter(e => !e.marked);
-
-            // Update Particles
-            particles.forEach(p => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-            });
-            particles = particles.filter(p => p.life > 0);
-        }
-
-        function stumble() {
-            reviewerDist = 15;
-            warningFlash.classList.add('warning-active');
-            canvas.style.transform = "translate(15px, 0px)";
-            setTimeout(() => canvas.style.transform = "translate(-15px, 0px)", 50);
-            setTimeout(() => canvas.style.transform = "translate(0, 0)", 100);
-        }
-
-        function gameOver() {
-            isPlaying = false; cancelAnimationFrame(animationId);
-            clearTimeout(bgmTimer); // Stop music
-            document.getElementById('final-score').innerText = score;
-            document.getElementById('game-over-screen').classList.remove('hidden');
-        }
-
-        // --- RENDER ENGINE ---
-        function draw() {
-            // Background Sky
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw Clouds
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            clouds.forEach(c => {
-                ctx.beginPath();
-                ctx.arc(c.x, c.y, c.size, 0, Math.PI*2);
-                ctx.arc(c.x + c.size*0.8, c.y - c.size*0.3, c.size*0.8, 0, Math.PI*2);
-                ctx.arc(c.x - c.size*0.8, c.y - c.size*0.3, c.size*0.8, 0, Math.PI*2);
-                ctx.fill();
-            });
-
-            // Draw Paper (The Track)
-            ctx.fillStyle = '#fdfdfd';
-            ctx.shadowBlur = 15; ctx.shadowColor = "rgba(0,0,0,0.3)";
-            ctx.fillRect(PAPER_X, 0, PAPER_WIDTH, 700);
-            ctx.shadowBlur = 0; // reset
-
-            // Paper Lines/Margins (Light blue like notebook paper)
-            ctx.strokeStyle = '#d6eaf8'; ctx.lineWidth = 2;
-            [125, 225, 325].forEach(x => {
-                ctx.beginPath(); ctx.moveTo(x - 40, 0); ctx.lineTo(x - 40, 700); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(x + 40, 0); ctx.lineTo(x + 40, 700); ctx.stroke();
-            });
-
-            // Draw Scrolling Academic Text
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'; // Very faint text
-            ctx.font = "14px 'Times New Roman', serif";
-            ctx.textAlign = "left";
-            textLines.forEach(t => {
-                ctx.fillText(t.text, PAPER_X + 15, t.y);
-            });
-
-            // Sort entities so low Y (top of screen) draws first
-            entities.sort((a,b) => a.y - b.y);
-
-            // Draw Entities
-            ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            entities.forEach(e => {
-                // Drop shadow
-                ctx.fillStyle = "rgba(0,0,0,0.2)";
-                ctx.beginPath(); ctx.ellipse(e.x, e.y + 15, 25, 6, 0, 0, Math.PI*2); ctx.fill();
-
-                if (e.type === 'os_badge') drawHexBadge(ctx, e.x, e.y, 16);
-                else if (e.type === 'oa_lock') drawLockBadge(ctx, e.x, e.y, 18);
-                else if (e.type === 'paywall') {
-                    // Draw tall custom Paywall
-                    ctx.fillStyle = '#8e44ad'; // Purple/Dark Blue base
-                    ctx.fillRect(e.x - 35, e.y - 80, 70, 100);
-                    // Brick lines
-                    ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2;
-                    for(let i=0; i<5; i++) {
-                        ctx.beginPath(); ctx.moveTo(e.x-35, e.y-80 + i*20); ctx.lineTo(e.x+35, e.y-80 + i*20); ctx.stroke();
-                    }
-                    ctx.fillStyle = '#fff'; ctx.font = "bold 16px Arial";
-                    ctx.fillText("PAY", e.x, e.y - 45);
-                    ctx.fillText("WALL", e.x, e.y - 25);
-                }
-                else if (e.type === 'apc') {
-                    // Bold Red Dollar Sign
-                    ctx.fillStyle = '#c0392b'; ctx.font = "bold 44px Arial";
-                    ctx.fillText("$", e.x, e.y + 5);
-                }
-                else if (e.type === 'diamond') {
-                    ctx.font = "35px Arial"; ctx.fillText("💎", e.x, e.y);
-                }
-            });
-
-            // Draw Player Shadow
-            let shadowScale = Math.max(0.2, 1 - ((GROUND_Y - player.renderY) / 200));
-            ctx.fillStyle = "rgba(0,0,0,0.3)";
-            ctx.beginPath(); ctx.ellipse(player.x, GROUND_Y + 20, 25 * shadowScale, 6 * shadowScale, 0, 0, Math.PI*2); ctx.fill();
-
-            // Shield Aura
-            if (player.hasShield) {
-                ctx.beginPath(); ctx.arc(player.x, player.renderY, 35, 0, Math.PI*2);
-                ctx.fillStyle = "rgba(41, 128, 185, 0.3)"; ctx.fill();
-                ctx.strokeStyle = "#2980b9"; ctx.lineWidth = 3; ctx.stroke();
-            }
-
-            // Draw Player (Pixel Art)
-            drawPixelSprite(ctx, playerSprite, player.x, player.renderY, 5);
-
-            // Draw Reviewer 2
-            if (reviewerDist < 100) {
-                let revY = 750 - (100 - reviewerDist) * 3;
-                ctx.font = "80px Arial"; ctx.fillText("😡", player.x, revY);
-                ctx.fillStyle = "#c0392b"; ctx.font = "bold 16px Roboto Mono";
-                ctx.fillText("REVIEWER 2", player.x, revY + 50);
-            }
-
-            // Draw Particles
-            particles.forEach(p => {
-                ctx.globalAlpha = p.life / p.maxLife;
-                if (p.type === 'text') {
-                    ctx.fillStyle = p.color; ctx.font = "bold 20px Roboto Mono";
-                    ctx.fillText(p.text, p.x, p.y);
-                } else {
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(p.x, p.y, p.size, p.size);
-                }
-                ctx.globalAlpha = 1;
-            });
-        }
-    </script>
+  <script>
+    const toggle = document.getElementById('darkModeToggle');
+    const doc = document.documentElement;
+    toggle.addEventListener('click', () => {
+      doc.classList.toggle('dark-mode');
+      localStorage.setItem('theme', doc.classList.contains('dark-mode') ? 'dark' : 'light');
+    });
+  </script>
 </body>
 </html>
