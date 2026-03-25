@@ -33,7 +33,7 @@
             padding: 15px; box-sizing: border-box;
             display: flex; justify-content: space-between;
             color: #111; z-index: 10; pointer-events: none;
-            font-size: 16px; font-weight: bold;
+            font-size: 14px; font-weight: bold;
             text-shadow: 2px 2px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff;
         }
 
@@ -108,9 +108,9 @@
         <div id="ui-layer">
             <div>
                 LEVEL: <span id="level-ui" style="color:#2980b9;">PhD Student</span><br>
-                PUBS: <span id="pubs-ui">0</span>
+                PUBS: <span id="pubs-ui">0</span> <span style="font-size: 12px; color:#555;">(Pgs: <span id="pages-ui">0</span>/10)</span>
             </div>
-            <div id="status-indicator" style="text-align: right;"></div>
+            <div id="status-indicator" style="text-align: right; line-height: 1.4;"></div>
         </div>
 
         <!-- Start Screen -->
@@ -130,10 +130,10 @@
                 <strong>CONTROLS:</strong> Swipe Left/Right (or Arrows) to change lanes. Swipe Up (or Space) to jump.<br><br>
                 <strong>THE TREADMILL:</strong>
                 <ul>
-                    <li>📄 <strong>Papers:</strong> Collect for +1 Pub.</li>
-                    <li>🟦 <strong>Open Data:</strong> Collect for +2 Pubs.</li>
-                    <li>📜 <strong>Grants:</strong> Protects you from 3 APCs.</li>
-                    <li>🟪 <strong>p-Hacking:</strong> The 'p' boosts speed drastically! Dangerous (no APC protection), but gets pubs fast.</li>
+                    <li>📄 <strong>Pages:</strong> Collect for +2 Pages. Get 10 pages for 1 Publication!</li>
+                    <li>🟦 <strong>Open Data:</strong> Collect for +5 Pages.</li>
+                    <li>📜 <strong>Grants:</strong> Protects you from 3 APC fees.</li>
+                    <li>🟪 <strong>p-Hacking:</strong> The 'p' boosts speed drastically! Dangerous (no APC protection), but gets you pages fast.</li>
                     <li>🧱 <strong>Paywalls:</strong> Too high to jump. Instant rejection!</li>
                     <li><strong style="color:red;">$</strong> <strong>APCs:</strong> Jump over these fees, or use a Grant.</li>
                     <li>😡 <strong>Reviewer 2:</strong> Stumble, and they catch you!</li>
@@ -164,7 +164,7 @@
             <h2 style="margin: 5px 0 15px 0; color:#27ae60; font-size:14px;">Final Rank: <span id="final-level"></span></h2>
             
             <div class="text-content" style="font-size: 11px; text-align: center;">
-                Research assessment is tough, often prioritizing quantity over quality, but the system is changing. Researchers worldwide are signing <strong>SF DORA</strong> and joining <strong>CoARA</strong> to push for fairer evaluations—and you can sign SF DORA too!
+                Research assessment is tough, often prioritizing quantity over quality, but the system is changing. Researchers worldwide are joining <strong>CoARA</strong> and signing <br><strong><a href="https://sfdora.org/national-and-international-initiatives-discussion-group" target="_blank">SF DORA Initiatives</a></strong><br> to push for fairer evaluations—and you can sign too!
             </div>
             <div class="btn-container">
                 <button onclick="showScreen('tutorial-screen')">NEW SUBMISSION</button>
@@ -177,6 +177,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const pubsEl = document.getElementById('pubs-ui');
+        const pagesEl = document.getElementById('pages-ui');
         const levelEl = document.getElementById('level-ui');
         const statusIndicator = document.getElementById('status-indicator');
         const warningFlash = document.getElementById('warning-flash');
@@ -189,13 +190,42 @@
             }
         }
 
-        // --- AUDIO ENGINE ---
+        // --- AUDIO ENGINE (Full 16-measure loop restored) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let bgmTimer;
         let nextNoteTime = 0;
         let bgmStep = 0;
 
         function getFreq(note) { return 440 * Math.pow(2, (note - 69) / 12); }
+
+        // The long, cool SNES-style ragtime melody
+        const mainMelody = [
+            72,0,76,0,79,0,0,72,  84,0,79,0,76,0,0,0,
+            74,0,77,0,81,0,0,74,  83,0,81,0,79,0,0,0,
+            72,0,76,0,79,0,0,72,  84,0,79,0,76,0,0,0,
+            77,0,81,0,84,0,0,77,  83,0,79,0,72,0,0,0,
+            
+            81,0,0,81,84,0,81,0,  79,0,0,79,76,0,72,0,
+            74,0,0,74,77,0,81,0,  79,0,77,0,76,0,79,0,
+            81,0,0,81,84,0,81,0,  79,0,0,79,76,0,72,0,
+            74,0,76,0,77,0,78,0,  79,0,0,0, 0,0,0,0
+        ];
+        
+        const mainBass = [
+            48,0,0,48,43,0,0,43,  48,0,0,48,43,0,0,43,
+            50,0,0,50,43,0,0,43,  50,0,0,50,43,0,0,43,
+            48,0,0,48,43,0,0,43,  48,0,0,48,43,0,0,43,
+            53,0,0,53,48,0,0,48,  55,0,0,55,43,0,0,43,
+            
+            53,0,0,53,48,0,0,48,  48,0,0,48,43,0,0,43,
+            50,0,0,50,45,0,0,45,  43,0,0,43,38,0,0,38,
+            53,0,0,53,48,0,0,48,  48,0,0,48,43,0,0,43,
+            50,0,0,50,52,0,0,52,  55,0,0,0, 0,0,0,0
+        ];
+
+        // Frantic chromatic run for P-Hacking
+        const phackMelody = [72, 73, 74, 75, 76, 75, 74, 73];
+        const phackBass = [48, 0, 49, 0, 50, 0, 51, 0];
 
         function scheduleBGM() {
             if (!isPlaying) return;
@@ -204,19 +234,12 @@
             while (nextNoteTime < currentTime + 0.1) {
                 let mNote = 0, bNote = 0;
                 
-                // Normal vs P-Hacking Mode Music
                 if (player.phackTimer > 0) {
-                    // Frantic chromatic run
-                    const phackMelody = [72, 73, 74, 75, 76, 75, 74, 73];
-                    const phackBass = [48, 0, 49, 0, 50, 0, 51, 0];
-                    mNote = phackMelody[bgmStep % 8];
-                    bNote = phackBass[bgmStep % 8];
+                    mNote = phackMelody[bgmStep % phackMelody.length];
+                    bNote = phackBass[bgmStep % phackBass.length];
                 } else {
-                    // Standard bouncy tune
-                    const melody = [72,0,76,0,79,0,0,72, 84,0,79,0,76,0,0,0];
-                    const bass = [48,0,0,48,43,0,0,43, 48,0,0,48,43,0,0,43];
-                    mNote = melody[bgmStep % 16];
-                    bNote = bass[bgmStep % 16];
+                    mNote = mainMelody[bgmStep % mainMelody.length];
+                    bNote = mainBass[bgmStep % mainBass.length];
                 }
 
                 if (mNote > 0) {
@@ -281,24 +304,32 @@
             { name: "PhD Student", req: 0, 
               sprite: ["  BBBB  ", " BCCCCB ", " BCBWCB ", " WWWWWW ", " BWWWWb ", "  WWWW  ", "  B  B  ", "  B  B  "] },
             { name: "Postdoc", req: 3, 
-              sprite: ["  BBBB  ", " BCCCCB ", " BCCCgB ", " gggggg ", " BggWgb ", "  gggg  ", "  B  B  ", "  B  B  "] }, // Grey coat
+              sprite: ["  BBBB  ", " BCCCCB ", " BCCCgB ", " gggggg ", " BggWgb ", "  gggg  ", "  B  B  ", "  B  B  "] }, 
             { name: "Lecturer", req: 9, 
-              sprite: ["  BBBB  ", " BCCCCB ", " BCBWCB ", " BBBBBB ", " WBBBBW ", "  BBBB  ", "  B  B  ", "  B  B  "] }, // Suit
+              sprite: ["  BBBB  ", " BCCCCB ", " BCBWCB ", " BBBBBB ", " WBBBBW ", "  BBBB  ", "  B  B  ", "  B  B  "] }, 
             { name: "Asst. Prof", req: 21, 
-              sprite: ["  BBBB  ", " BCCCCB ", " BCBWCB ", " BBBBBB ", " WBBBBW ", "  BBBB  ", "  W  W  ", "  B  B  ", "  B  B  "] }, // Taller
+              sprite: ["  BBBB  ", " BCCCCB ", " BCBWCB ", " BBBBBB ", " WBBBBW ", "  BBBB  ", "  W  W  ", "  B  B  ", "  B  B  "] }, 
             { name: "Tenured Prof", req: 45, 
-              sprite: ["  YYYY  ", "  BBBB  ", " BCCCCB ", " BCBWCB ", " YYYYYY ", " YYYYYY ", "  YYYY  ", "  Y  Y  ", "  B  B  "] }  // Crown/Robes
+              sprite: ["  YYYY  ", "  BBBB  ", " BCCCCB ", " BCBWCB ", " YYYYYY ", " YYYYYY ", "  YYYY  ", "  Y  Y  ", "  B  B  "] }  
         ];
 
+        let pages = 0;
         let pubs = 0;
         let currentLevel = 0;
         const colors = {'W':'#ffffff', 'B':'#000000', 'C':'#ffc0cb', 'b':'#2980b9', 'g':'#95a5a6', 'Y':'#f1c40f'};
 
-        function addPubs(amount) {
-            pubs += amount;
-            pubsEl.innerText = pubs;
-            
-            // Check Level Up (use loop in case they skip levels)
+        function addPages(amount) {
+            pages += amount;
+            while (pages >= 10) {
+                pages -= 10;
+                pubs++;
+                pubsEl.innerText = pubs;
+                checkLevelUp();
+            }
+            pagesEl.innerText = pages;
+        }
+
+        function checkLevelUp() {
             while (currentLevel < levels.length - 1 && pubs >= levels[currentLevel + 1].req) {
                 currentLevel++;
                 levelEl.innerText = levels[currentLevel].name;
@@ -307,7 +338,6 @@
             }
         }
 
-        // --- GRAPHICS DRAWING ---
         function drawPixelSprite(ctx, sprite, x, y, scale) {
             const size = scale;
             const w = sprite[0].length * size; const h = sprite.length * size;
@@ -337,7 +367,6 @@
         
         const academicWords = ["Abstract", "Methodology", "Results", "p < 0.05", "N = 342", "Analysis", "Discussion", "Conclusion", "Data Set", "Variables", "Significance", "Reviewer"];
 
-        // Input
         function handleMove(dir) {
             if (!isPlaying) return;
             if (dir === 'left' && player.lane > 0) player.lane--;
@@ -367,10 +396,10 @@
         }, {passive: false});
 
         function startGame() {
-            isPlaying = true; pubs = 0; currentLevel = 0; gameSpeed = 5; frameCount = 0; pageNum = 2;
+            isPlaying = true; pages = 0; pubs = 0; currentLevel = 0; gameSpeed = 5; frameCount = 0; pageNum = 2;
             entities = []; particles = []; textLines = []; pageBreaks = [];
             
-            pubsEl.innerText = pubs; levelEl.innerText = levels[0].name;
+            pubsEl.innerText = pubs; pagesEl.innerText = pages; levelEl.innerText = levels[0].name;
             
             for(let y=0; y<700; y+=40) spawnTextLine(y);
             pageBreaks.push({y: 350, page: 1});
@@ -380,7 +409,7 @@
             statusIndicator.innerText = "";
             warningFlash.classList.remove('warning-active');
             
-            showScreen(''); // Hide all screens to show canvas
+            showScreen(''); // Hide all screens
             
             if (audioCtx.state === 'suspended') audioCtx.resume();
             clearTimeout(bgmTimer); bgmStep = 0; nextNoteTime = audioCtx.currentTime + 0.1;
@@ -436,8 +465,8 @@
             let speedMult = (player.phackTimer > 0) ? 1.5 : 1;
             let activeSpeed = gameSpeed * speedMult;
 
-            // Passive Publications (Every 4 real seconds at 60fps)
-            if (frameCount % 240 === 0) addPubs(1); 
+            // Passive Writing: 1 Page every 120 frames (approx 2 seconds)
+            if (frameCount % 120 === 0) addPages(1); 
 
             if (frameCount % Math.floor(40/activeSpeed) === 0) spawnTextLine(-20);
             
@@ -485,12 +514,12 @@
                     let isHighUp = (GROUND_Y - player.renderY) > 50;
 
                     if (e.type === 'paper') {
-                        addPubs(1); playSound('coin'); e.marked = true;
-                        spawnParticles(e.x, e.y, '#bdc3c7', 10); spawnParticles(e.x, e.y - 20, '#2c3e50', 1, "+1 Pub");
+                        addPages(2); playSound('coin'); e.marked = true;
+                        spawnParticles(e.x, e.y, '#bdc3c7', 10); spawnParticles(e.x, e.y - 20, '#2c3e50', 1, "+2 Pgs");
                     }
                     else if (e.type === 'os_badge') {
-                        addPubs(2); playSound('coin'); e.marked = true;
-                        spawnParticles(e.x, e.y, '#2980b9', 15); spawnParticles(e.x, e.y - 20, '#2980b9', 1, "+2 Pubs");
+                        addPages(5); playSound('coin'); e.marked = true;
+                        spawnParticles(e.x, e.y, '#2980b9', 15); spawnParticles(e.x, e.y - 20, '#2980b9', 1, "+5 Pgs");
                     } 
                     else if (e.type === 'grant') {
                         player.grantCharges = 3; playSound('grant'); e.marked = true;
@@ -590,7 +619,7 @@
                     ctx.fillStyle = '#27ae60'; ctx.fillRect(e.x-5, e.y-12, 10, 24);  
                 }
                 else if (e.type === 'phack') {
-                    ctx.fillStyle = '#8e44ad'; ctx.font = "bold 44px 'Times New Roman'";
+                    ctx.fillStyle = '#8e44ad'; ctx.font = "italic bold 44px 'Times New Roman'";
                     ctx.fillText("p", e.x, e.y);
                 }
                 else if (e.type === 'paywall') {
