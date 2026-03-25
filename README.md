@@ -1,4 +1,7 @@
 # Tenure Run: Publish or Perish!
+
+Play at https://t1p.de/tenurerun
+
 Tenure Run is a browser-based endless runner game built entirely in a single HTML file. It serves as a fun, satirical, and educational metaphor for the modern academic publishing landscape, specifically focusing on the pressure to publish, Questionable Research Practices (QRPs), Article Processing Charges (APCs), and Open Science.
 
 ## 🧠 The Educational Metaphor
