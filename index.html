@@ -398,6 +398,7 @@
             bgmTimer = setTimeout(scheduleBGM, 50);
         }
 
+        // Easter Egg: Randomized Harmonic Sine Trill
         let lastWhistle = 0;
         function playWhistle() {
             if (!audioCtx || gameState !== 'playing') return;
@@ -486,7 +487,7 @@
         function shareSocial(platform) {
             btnClick('audio-only'); 
             let apcCost = totalAPCs * 2500;
-            const text = `I reached the rank of ${levels[currentLevel].name} in Tenure Run! 🎓\n\nI published ${pubs} papers and paid $${apcCost.toLocaleString()} in APCs to publishers. My grant money is gone and I am exhausted. 💸\n\nHow far can you make it? Play now at https://t1p.de/tenurerun`;
+            const text = `I reached the rank of ${levels[currentLevel].name} in Tenure Run! 🎓\n\nI published ${pubs} papers and paid $${apcCost.toLocaleString()} in APCs to publishers. My grant money is gone and I am exhausted. 💸\n\nHow far can you make it? Play now at https://forrt.org/TenureRun/`;
             const encoded = encodeURIComponent(text);
             
             if (platform === 'twitter') window.open(`https://twitter.com/intent/tweet?text=${encoded}`, '_blank');
@@ -501,11 +502,17 @@
         async function handleLeaderboard() {
             const lbContent = document.getElementById('lb-content');
             if (!dbClient) {
-                lbContent.innerHTML = "<div style='text-align:center; padding:10px; color:#c0392b;'>Leaderboard disabled.<br>Supabase keys invalid or missing.</div>";
+                lbContent.innerHTML = "<div style='text-align:center; padding:10px; color:#c0392b;'>Leaderboard disabled.<br>Database connection failed.</div>";
                 return;
             }
 
-            let nickname = nicknameInput.value.trim() || "Anonymous Reviewer";
+            // Satirical default names
+            const defaultNames = ["Dr. P. Hacker", "Prof. Cheri Picker", "Dr. I. Cite-Myself", "Reviewer 2", "H. A. R. King", "Dr. Simon Salami", "Noah Data", "Prof. H. Index"];
+            let nickname = nicknameInput.value.trim();
+            if (!nickname) {
+                nickname = defaultNames[Math.floor(Math.random() * defaultNames.length)];
+            }
+
             lbContent.innerHTML = "<div style='text-align:center; padding:10px;'>Submitting...</div>";
 
             try {
