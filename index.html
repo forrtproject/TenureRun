@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tenure Run</title>
+    <!-- Load Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@700&display=swap');
 
@@ -74,6 +76,13 @@
         .btn-container { display: flex; flex-direction: column; gap: 10px; width: 80%; max-width: 300px; }
         .share-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
 
+        input[type="text"] {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 16px; padding: 10px; margin-bottom: 15px;
+            border: 2px solid #2c3e50; border-radius: 5px;
+            width: 80%; max-width: 250px; text-align: center;
+        }
+
         button {
             font-family: 'Press Start 2P', monospace;
             background: #3498db; color: #fff;
@@ -87,10 +96,32 @@
         .btn-orange { background: #e67e22; border-color: #d35400; }
         
         /* Share Buttons */
-        .btn-share { padding: 10px; font-size: 16px; box-shadow: 2px 2px 0px #111; }
+        .btn-share { padding: 8px; font-size: 14px; box-shadow: 2px 2px 0px #111; }
         .btn-bsky { background: #0085ff; border-color: #006bce; }
         .btn-twit { background: #000000; border-color: #333333; }
         .btn-mast { background: #563acc; border-color: #452e99; }
+
+        /* Leaderboard Styling */
+        .leaderboard {
+            width: 100%; max-width: 380px;
+            background: #fff; border: 2px solid #2c3e50;
+            border-radius: 5px; margin: 10px 0;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+        .leaderboard-header {
+            background: #2c3e50; color: #f1c40f;
+            padding: 5px; font-size: 10px; font-weight: bold;
+            font-family: 'Press Start 2P', monospace;
+            text-shadow: 1px 1px #000;
+        }
+        .leaderboard-list {
+            height: 120px; overflow-y: auto;
+            font-size: 12px; padding: 5px; text-align: left;
+        }
+        .lb-row { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 4px 0; }
+        .lb-row:nth-child(even) { background: #f9f9f9; }
+        .lb-name { flex-grow: 1; margin-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-pubs { font-weight: bold; color: #2980b9; }
 
         #warning-flash {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
@@ -102,7 +133,6 @@
         @media (max-width: 400px) {
             h1 { font-size: 20px; }
             .text-content { font-size: 11px; }
-            .btn-share { font-size: 14px; padding: 8px; }
         }
     </style>
 </head>
@@ -126,6 +156,7 @@
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
             <h1>TENURE RUN</h1>
+            <input type="text" id="nickname-input" placeholder="Enter Nickname..." maxlength="15">
             <div class="btn-container">
                 <button onclick="btnClick('tutorial-screen')">PUBLISH OR PERISH</button>
                 <button class="btn-green" onclick="btnClick('about-screen')">ABOUT</button>
@@ -172,18 +203,18 @@
             <div class="text-content">
                 <p>This game is a comical take on the <strong>"publish or perish"</strong> treadmill that early-career researchers must navigate to keep their jobs or get promoted.</p>
                 <p>It aims to raise awareness of systemic issues in academia (like paywalls, massive APC fees, teaching overloads, and p-hacking out of desperation), while highlighting positive solutions.</p>
-                <p>Researchers worldwide are pushing for fairer evaluations by signing <strong><a href="https://sfdora.org/" target="_blank">SF DORA</a></strong> and joining <strong><a href="https://coara.eu/" target="_blank">CoARA</a></strong> (this game is not affiliated with them). Everyone can sign SF DORA to support assessing research on its own merits rather than journal metrics.</p>
+                <p>Researchers worldwide are pushing for fairer evaluations by signing <strong><a href="https://sfdora.org/" target="_blank">SF DORA</a></strong> and joining <strong><a href="https://coara.eu/" target="_blank">CoARA</a></strong>. Everyone can sign SF DORA to support assessing research on its own merits rather than journal metrics.</p>
                 <p>To join a large community concerned with Open Science and social justice, join <strong><a href="https://join.slack.com/t/forrt/shared_invite/enQtODMwODI0OTk4ODgzLTM0ZTQ3NDk5MzA1ZjBmNWJjYTVlN2Y2YTk0ZTJhYTY5NDliMDYzMjg2MWE0ZDRhOTY0ZDY3OTRlNDA4ODQ3NjQ" target="_blank">FORRT's open Slack channel!</a></strong></p>
             </div>
             <button class="btn-green" onclick="btnClick('start-screen')">BACK TO MENU</button>
         </div>
 
-        <!-- Game Over Screen -->
+        <!-- Game Over / Leaderboard Screen -->
         <div id="game-over-screen" class="screen hidden">
-            <h1 style="color: #c0392b; font-size: 18px; line-height: 1.6;">You did not publish enough<br>and thus had to perish.</h1>
+            <h1 style="color: #c0392b; font-size: 16px; line-height: 1.4;">You did not publish enough<br>and thus had to perish.</h1>
             <h2 style="margin: 5px 0; color:#333; font-size:14px;">Rank: <span id="final-level" style="color:#27ae60;"></span></h2>
             <h2 style="margin: 5px 0; color:#333; font-size:14px;">Publications: <span id="final-score" style="color:#2980b9;">0</span></h2>
-            <h2 style="margin: 5px 0 15px 0; color:#333; font-size:14px;">Total APCs Paid: <span id="final-apc" style="color:#c0392b;">$0</span></h2>
+            <h2 style="margin: 5px 0 5px 0; color:#333; font-size:14px;">Total APCs Paid: <span id="final-apc" style="color:#c0392b;">$0</span></h2>
 
             <div class="share-container">
                 <button class="btn-share btn-bsky" onclick="shareSocial('bluesky')" title="Share on Bluesky">🦋</button>
@@ -191,17 +222,30 @@
                 <button class="btn-share btn-mast" onclick="shareSocial('mastodon')" title="Share on Mastodon">🐘</button>
             </div>
             
-            <div class="text-content" style="font-size: 11px; text-align: center;">
-                Research assessment is tough, often prioritizing quantity over quality, but the system is changing. Researchers worldwide are joining <strong>CoARA</strong>, signing <strong><a href="https://sfdora.org/national-and-international-initiatives-discussion-group" target="_blank">SF DORA Initiatives</a></strong>, and building communities like <strong><a href="https://join.slack.com/t/forrt/shared_invite/enQtODMwODI0OTk4ODgzLTM0ZTQ3NDk5MzA1ZjBmNWJjYTVlN2Y2YTk0ZTJhYTY5NDliMDYzMjg2MWE0ZDRhOTY0ZDY3OTRlNDA4ODQ3NjQ" target="_blank">FORRT</a></strong> to push for fairer evaluations. You can join them!
+            <!-- Global Leaderboard -->
+            <div class="leaderboard">
+                <div class="leaderboard-header">"MOST IMPACTFUL" RESEARCHERS</div>
+                <div class="leaderboard-list" id="lb-content">Loading...</div>
             </div>
-            <div class="btn-container">
-                <button onclick="btnClick('tutorial-screen')">PLAY AGAIN</button>
+
+            <div class="btn-container" style="flex-direction: row; justify-content: center; margin-top: 10px;">
+                <button onclick="btnClick('start-screen')">PLAY AGAIN</button>
                 <button class="btn-green" onclick="btnClick('about-screen')">LEARN MORE</button>
             </div>
         </div>
     </div>
 
     <script>
+        // --- SUPABASE BACKEND CONFIGURATION ---
+        // REPLACE THESE WITH YOUR OWN SUPABASE CREDENTIALS ONCE CREATED
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+        
+        let supabase = null;
+        if (supabaseUrl !== 'YOUR_SUPABASE_URL') {
+            supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        }
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const pubsEl = document.getElementById('pubs-ui');
@@ -210,6 +254,7 @@
         const livesEl = document.getElementById('lives-ui');
         const statusIndicator = document.getElementById('status-indicator');
         const warningFlash = document.getElementById('warning-flash');
+        const nicknameInput = document.getElementById('nickname-input');
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -346,7 +391,6 @@
             if (now - lastWhistle < 1.0) return; 
             lastWhistle = now;
             
-            // C-Major diatonic scale notes
             let notes = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1318.51];
             let n1 = notes[Math.floor(Math.random() * notes.length)];
             let n2 = notes[Math.floor(Math.random() * notes.length)];
@@ -427,7 +471,7 @@
         function shareSocial(platform) {
             btnClick('audio-only'); 
             let apcCost = totalAPCs * 2500;
-            const text = `I reached the rank of ${levels[currentLevel].name} in Tenure Run! 🎓\n\nI published ${pubs} papers and paid $${apcCost.toLocaleString()} in APCs to publishers. My grant money is gone and I am exhausted. 💸\n\nHow far can you make it? Play now at https://t1p.de/tenurerun`;
+            const text = `I reached the rank of ${levels[currentLevel].name} in Tenure Run! 🎓\n\nI published ${pubs} papers and paid $${apcCost.toLocaleString()} in APCs. My grant money is gone and I am exhausted. 💸\n\nHow far can you make it? Play now at https://t1p.de/tenurerun`;
             const encoded = encodeURIComponent(text);
             
             if (platform === 'twitter') window.open(`https://twitter.com/intent/tweet?text=${encoded}`, '_blank');
@@ -435,6 +479,54 @@
             if (platform === 'mastodon') {
                 const instance = prompt("Enter your Mastodon instance URL (e.g., mastodon.social):", "mastodon.social");
                 if (instance) window.open(`https://${instance}/share?text=${encoded}`, '_blank');
+            }
+        }
+
+        // --- SUPABASE LEADERBOARD LOGIC ---
+        async function handleLeaderboard() {
+            const lbContent = document.getElementById('lb-content');
+            if (!supabase) {
+                lbContent.innerHTML = "<div style='text-align:center; padding:10px; color:#c0392b;'>Leaderboard disabled.<br>Supabase keys missing in code.</div>";
+                return;
+            }
+
+            let nickname = nicknameInput.value.trim() || "Anonymous Reviewer";
+            lbContent.innerHTML = "<div style='text-align:center; padding:10px;'>Submitting...</div>";
+
+            try {
+                // Submit Score
+                if (pubs > 0) {
+                    await supabase.from('leaderboard').insert([
+                        { nickname: nickname, pubs: pubs, apcs: totalAPCs }
+                    ]);
+                }
+
+                // Fetch Top 20
+                const { data, error } = await supabase
+                    .from('leaderboard')
+                    .select('*')
+                    .order('pubs', { ascending: false })
+                    .order('created_at', { ascending: true })
+                    .limit(20);
+
+                if (error) throw error;
+
+                // Render
+                lbContent.innerHTML = "";
+                data.forEach((row, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'lb-row';
+                    // Crown for top 3
+                    let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                    div.innerHTML = `<span style="width:25px;">${medal}</span> 
+                                     <span class="lb-name">${row.nickname}</span> 
+                                     <span class="lb-pubs">${row.pubs} Pubs</span>`;
+                    lbContent.appendChild(div);
+                });
+
+            } catch (err) {
+                console.error("Leaderboard Error:", err);
+                lbContent.innerHTML = "<div style='text-align:center; padding:10px; color:#c0392b;'>Could not load leaderboard.</div>";
             }
         }
 
@@ -465,7 +557,6 @@
         function checkLevelUp() {
             while (currentLevel < levels.length - 1 && pubs >= levels[currentLevel + 1].req) {
                 currentLevel++; levelEl.innerText = levels[currentLevel].name;
-                player.lives++; updateLivesUI();
                 playSound('levelup'); spawnParticles(player.x, player.renderY - 30, '#f1c40f', 30, "LEVEL UP!");
             }
         }
@@ -585,7 +676,8 @@
             const lane = Math.floor(Math.random() * 3);
             let type = '';
             
-            // Highly skewed probabilities to make APCs super common, Grants rare.
+            let grantChance = currentLevel * 0.03; 
+
             if (rand < 0.30) type = 'paper';
             else if (rand < 0.40) type = 'os_badge';
             else if (rand < 0.45) type = 'prereg';
@@ -688,7 +780,7 @@
                     let isHighUp = (GROUND_Y - player.renderY) > 35;
 
                     if (e.type === 'paper' || e.type === 'os_badge' || e.type === 'grant' || e.type === 'prereg' || e.type === 'phack' || e.type === 'forrt') {
-                        if (isHighUp) return; // Jumped over it, DO NOT COLLECT
+                        if (isHighUp) return; // Jumped over it
                         
                         if (e.type === 'paper') { addPages(2); playSound('coin'); e.marked = true; spawnParticles(e.x, e.y, '#bdc3c7', 10); spawnParticles(e.x, e.y - 20, '#2c3e50', 1, "+2 Pgs"); }
                         if (e.type === 'os_badge') { addPages(5); playSound('coin'); e.marked = true; spawnParticles(e.x, e.y, '#2980b9', 15); spawnParticles(e.x, e.y - 20, '#2980b9', 1, "+5 Pgs"); }
@@ -736,7 +828,9 @@
             document.getElementById('final-score').innerText = pubs;
             document.getElementById('final-level').innerText = levels[currentLevel].name;
             document.getElementById('final-apc').innerText = "$" + (totalAPCs * 2500).toLocaleString();
+            
             showScreen('game-over-screen');
+            handleLeaderboard(); // Call Supabase logic
         }
 
         // --- RENDER ENGINE ---
@@ -802,9 +896,6 @@
                     ctx.fillRect(e.x - 20, e.y - 45, 40, 15); 
                     ctx.fillStyle = '#f9f9f9'; ctx.fillRect(e.x - 12, e.y - 46, 6, 8); ctx.fillRect(e.x + 6, e.y - 46, 6, 8);
                     ctx.fillStyle = '#fff'; ctx.fillRect(e.x - 6, e.y - 22, 12, 12);
-                    ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.arc(e.x, e.y - 5, 8, Math.PI, 0); ctx.fill(); ctx.fillRect(e.x - 8, e.y - 5, 16, 15);
-                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y - 5, 8, Math.PI, 0);
-                    ctx.moveTo(e.x - 8, e.y - 5); ctx.lineTo(e.x - 8, e.y + 10); ctx.moveTo(e.x + 8, e.y - 5); ctx.lineTo(e.x + 8, e.y + 10); ctx.stroke();
                 }
                 else if (e.type === 'phack') {
                     ctx.fillStyle = '#8e44ad'; ctx.font = "italic bold 44px 'Times New Roman'";
