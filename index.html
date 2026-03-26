@@ -140,7 +140,7 @@
                     <li>📜 <strong>Grants:</strong> Protects from 3 APC fees.</li>
                     <li>❤️ <strong>Lives:</strong> You have 3. Gain +1 per Level Up.</li>
                     <li>🧱 <strong>Paywalls:</strong> Covers 2 lanes. DODGE or JUMP!</li>
-                    <li>📚 <strong>Grading:</strong> JUMP over them!</li>
+                    <li>📚 <strong>Teaching/Grading:</strong> Stacks & Chalkboards. JUMP over them!</li>
                     <li><strong style="color:red;">$</strong> <strong>APCs:</strong> JUMP over, or use a Grant.</li>
                 </ul>
             </div>
@@ -278,7 +278,6 @@
                 let mNote = 0, bNote = 0;
                 let step = bgmStep;
                 let isPhacking = (gameState === 'playing' && player.phackTimer > 0);
-                let isFullBand = (gameState === 'about' || (gameState === 'playing' && currentLevel >= 1));
                 
                 if (isPhacking) {
                     mNote = phackMelody[step % phackMelody.length];
@@ -288,30 +287,30 @@
                     bNote = mainBass[step % mainBass.length];
                 }
 
-                // Melody: Triangle if level 0, Square if level 1+
+                // LEVEL 0+: Melody plays
                 if (mNote > 0) {
                     let gain = audioCtx.createGain(); gain.connect(audioCtx.destination);
                     let osc = audioCtx.createOscillator(); 
-                    osc.type = isPhacking ? 'sawtooth' : (isFullBand ? 'square' : 'triangle');
+                    osc.type = isPhacking ? 'sawtooth' : 'square';
                     osc.frequency.setValueAtTime(getFreq(mNote), nextNoteTime); osc.connect(gain);
-                    gain.gain.setValueAtTime(isFullBand ? 0.04 : 0.06, nextNoteTime); 
+                    gain.gain.setValueAtTime(0.04, nextNoteTime); 
                     gain.gain.exponentialRampToValueAtTime(0.001, nextNoteTime + 0.15);
                     osc.start(nextNoteTime); osc.stop(nextNoteTime + 0.15);
                 }
 
-                // Drums: Level 1+
-                if (isFullBand && !isPhacking) {
-                    if (step % 4 === 0) playDrum(nextNoteTime, true); 
-                    if (step % 4 === 2) playDrum(nextNoteTime, false); 
-                }
-
-                // Bass: Level 0+
-                if (bNote > 0) {
+                // LEVEL 1+: Bass plays
+                if ((currentLevel >= 1 || isPhacking || gameState === 'about') && bNote > 0) {
                     let gain = audioCtx.createGain(); gain.connect(audioCtx.destination);
                     let osc = audioCtx.createOscillator(); osc.type = 'triangle';
                     osc.frequency.setValueAtTime(getFreq(bNote), nextNoteTime); osc.connect(gain);
                     gain.gain.setValueAtTime(0.15, nextNoteTime); gain.gain.exponentialRampToValueAtTime(0.01, nextNoteTime + 0.2);
                     osc.start(nextNoteTime); osc.stop(nextNoteTime + 0.2);
+                }
+
+                // LEVEL 2+: Drums play
+                if ((currentLevel >= 2 || gameState === 'about') && !isPhacking) {
+                    if (step % 4 === 0) playDrum(nextNoteTime, true); 
+                    if (step % 4 === 2) playDrum(nextNoteTime, false); 
                 }
 
                 // Tempo Management
@@ -540,19 +539,19 @@
             const lane = Math.floor(Math.random() * 3);
             let type = '';
             
-            let grantChance = currentLevel * 0.03; // Grants spawn more at higher levels
+            let grantChance = currentLevel * 0.03; 
 
             if (rand < 0.25) type = 'paper';
             else if (rand < 0.35) type = 'os_badge';
             else if (rand < 0.40 + grantChance) type = 'grant';
             else if (rand < 0.45 + grantChance) type = 'prereg';
-            else if (rand < 0.60 + grantChance) type = 'grading';
+            else if (rand < 0.60 + grantChance) type = (Math.random() < 0.5) ? 'stack' : 'chalkboard'; // Teaching
             else if (rand < 0.75 + grantChance) type = 'paywall';
             else if (rand < 0.95 + grantChance) type = 'apc';
             else type = 'phack';
 
             if (type === 'paywall') {
-                // Blocks 2 out of 3 lanes
+                // Blocks exactly 2 out of 3 lanes
                 let safeLane = Math.floor(Math.random() * 3);
                 for (let i=0; i<3; i++) {
                     if (i !== safeLane && !entities.some(e => e.lane === i && e.y < 200)) {
@@ -661,7 +660,7 @@
                             }
                         }
                     }
-                    else if (e.type === 'grading' || e.type === 'paywall' || e.type === 'apc') {
+                    else if (e.type === 'stack' || e.type === 'chalkboard' || e.type === 'paywall' || e.type === 'apc') {
                         if (isHighUp) return; // DODGED BY JUMPING
                         
                         if (e.type === 'apc' && player.grantCharges > 0) {
@@ -719,7 +718,7 @@
 
             entities.forEach(e => {
                 // Ground shadow - Red for dangerous objects
-                ctx.fillStyle = (e.type==='apc'||e.type==='paywall'||e.type==='grading') ? "rgba(231,76,60,0.4)" : "rgba(0,0,0,0.2)";
+                ctx.fillStyle = (e.type==='apc'||e.type==='paywall'||e.type==='stack'||e.type==='chalkboard') ? "rgba(231,76,60,0.4)" : "rgba(0,0,0,0.2)";
                 
                 if (e.type === 'paywall') {
                     ctx.beginPath(); ctx.ellipse(e.x, e.y + 15, 60, 8, 0, 0, Math.PI*2); ctx.fill();
@@ -753,10 +752,25 @@
                     ctx.fillStyle = '#8e44ad'; ctx.font = "italic bold 44px 'Times New Roman'";
                     ctx.fillText("p", e.x, e.y);
                 }
-                else if (e.type === 'grading') {
-                    ctx.fillStyle = '#f39c12'; ctx.fillRect(e.x-20, e.y-25, 40, 30);
-                    ctx.fillStyle = '#fff'; ctx.fillRect(e.x-18, e.y-23, 36, 26);
-                    ctx.fillStyle = '#c0392b'; ctx.font = "bold 16px Arial"; ctx.fillText("F", e.x, e.y - 10);
+                else if (e.type === 'stack') {
+                    // Mountain of grading papers
+                    ctx.fillStyle = '#eee'; ctx.fillRect(e.x-15, e.y-25, 30, 10);
+                    ctx.fillStyle = '#fff'; ctx.fillRect(e.x-17, e.y-30, 34, 10);
+                    ctx.fillStyle = '#f9f9f9'; ctx.fillRect(e.x-14, e.y-35, 28, 10);
+                    ctx.fillStyle = '#fff'; ctx.fillRect(e.x-16, e.y-40, 32, 10);
+                    // Red Pen on top
+                    ctx.fillStyle = '#c0392b'; ctx.beginPath();
+                    ctx.moveTo(e.x-10, e.y-42); ctx.lineTo(e.x+12, e.y-38); ctx.lineTo(e.x+14, e.y-40); ctx.lineTo(e.x-8, e.y-44); ctx.fill();
+                }
+                else if (e.type === 'chalkboard') {
+                    // Frame
+                    ctx.fillStyle = '#8B4513'; ctx.fillRect(e.x-25, e.y-45, 50, 40);
+                    // Legs
+                    ctx.fillRect(e.x-22, e.y-5, 4, 10); ctx.fillRect(e.x+18, e.y-5, 4, 10);
+                    // Board
+                    ctx.fillStyle = '#2E4B31'; ctx.fillRect(e.x-21, e.y-41, 42, 32);
+                    // Chalk
+                    ctx.fillStyle = '#fff'; ctx.font = "12px 'Comic Sans MS', cursive"; ctx.fillText("A B C", e.x, e.y-25);
                 }
                 else if (e.type === 'paywall') {
                     ctx.fillStyle = '#2c3e50'; ctx.fillRect(e.x - 62.5, e.y - 60, 125, 80);
